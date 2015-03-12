@@ -80,6 +80,7 @@ extern void owltgt_tx_processq(struct ath_softc_tgt *sc, struct ath_txq *txq,  o
 void owl_tgt_node_init(struct ath_node_target * an);
 void ath_tgt_tx_sched_normal(struct ath_softc_tgt *sc, struct ath_buf *bf);
 void ath_tgt_tx_sched_nonaggr(struct ath_softc_tgt *sc,struct ath_buf * bf_host);
+extern uint8_t ath9k_fixed_rate;
 
 /*
  * Extend a 32 bit TSF to nearest 64 bit TSF value.

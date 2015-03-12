@@ -72,6 +72,9 @@
 #define SYMBOL_TIME(_ns)        ((_ns) << 2)            // ns * 4 us
 #define SYMBOL_TIME_HALFGI(_ns) (((_ns) * 18 + 4) / 5)  // ns * 3.6 us
 
+uint8_t ath9k_fixed_rate = 0x84; // See ar5416Phy.c for the index values.
+								 // Note that data rate also depends on GI.
+
 static a_uint16_t bits_per_symbol[][2] = {
 	/* 20MHz 40MHz */
 	{    26,   54 },     //  0: BPSK
@@ -373,6 +376,14 @@ static void ath_buf_set_rate(struct ath_softc_tgt *sc, struct ath_tx_buf *bf)
     a_int32_t i, flags;
     a_uint8_t rix, cix, rtsctsrate;
     a_int32_t prot_mode = AH_FALSE;
+
+    for (i = 0; i < 4; i++) {
+    	// Find rix for specific rate code.
+    	bf->bf_rcs[i].rix = dbg_rc_find_rix(sc, ath9k_fixed_rate);
+    	// For some reason, the flag needs to be set as well
+    	// even though we selected .sgiIndex in our find function
+    	bf->bf_rcs[i].flags |= ATH_RC_HT40_SGI_FLAG;
+    }
 
     rt = sc->sc_currates;
     rix = bf->bf_rcs[0].rix;

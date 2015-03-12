@@ -1062,6 +1062,19 @@ ath_rate_findrate(struct ath_softc_tgt *sc,
 			      rcflag, series, isProbe);
 }
 
+A_UINT8 dbg_rc_find_rix(struct ath_softc_tgt *sc, A_UINT8 code) {
+	struct atheros_softc *asc = (struct atheros_softc*)sc->sc_rc;
+	A_UINT8 i;
+	RATE_TABLE_11N *pRateTable = (RATE_TABLE_11N *)asc->hwRateTable[sc->sc_curmode];
+
+	for(i = 0; i < pRateTable->rateCount; i++) {
+		if(pRateTable->info[i].rateCode == code)
+			return pRateTable->info[i].sgiIndex; // Choose fastest (SGI)
+	}
+
+	return 0;
+}
+
 #define MS(_v, _f)  (((_v) & _f) >> _f##_S)
 
 void
