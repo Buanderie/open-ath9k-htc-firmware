@@ -163,6 +163,8 @@ typedef enum {
     WMI_RX_STATS_CMDID,
     WMI_BITRATE_MASK_CMDID,
     WMI_REG_RMW_CMDID,
+    // New stuff
+    WMI_DBGCMD_CMDID,
 } WMI_COMMAND_ID;
 
 /*
@@ -258,6 +260,28 @@ typedef PREPACK struct {
     a_uint16_t     tupleNumH;
     WMI_AVT      avt[1];
 } POSTPACK WMI_ACCESS_MEMORY_CMD;
+
+/*
+ * WMI_DBGCMD_CMDID
+ */
+
+ typedef enum {
+    DBG_CMD_READ_MEMORY,
+    DBG_CMD_TEST,
+    DBG_CMD_SET_REG,
+    DBG_CMD_SET_RATE,
+    DBG_CMD_RESET
+} DBG_CMD_ID;
+
+typedef PREPACK struct dbg_cmd_request {
+    a_uint8_t id;
+    a_uint32_t args[2];
+} POSTPACK dbg_cmd_request;
+
+typedef PREPACK struct dbg_cmd_response {
+    a_uint8_t length;
+    a_uint8_t buffer[33];
+} POSTPACK dbg_cmd_response;
 
 /*
  * List of Events (target to host)

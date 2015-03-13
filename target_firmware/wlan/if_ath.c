@@ -56,6 +56,7 @@
 #include "if_athvar.h"
 #include "ah_desc.h"
 #include "ah.h"
+#include "debug.h"
 
 static a_int32_t ath_numrxbufs = -1;
 static a_int32_t ath_numrxdescs = -1;
@@ -1749,6 +1750,61 @@ static void ath_rc_mask_tgt(void *Context, A_UINT16 Command,
 	wmi_cmd_rsp(sc->tgt_wmi_handle, Command, SeqNo, NULL, 0);
 }
 
+static void dbg_cmd(void *Context,A_UINT16 Command, A_UINT16 SeqNo,
+				A_UINT8 *data, a_int32_t datalen)
+{
+	struct ath_softc_tgt *sc = (struct ath_softc_tgt *)Context;
+    //struct ath_hal *ah = sc->sc_ah;
+	struct dbg_cmd_request* request = (struct dbg_cmd_request*) data;
+	struct dbg_cmd_response response;
+
+    A_MEMSET(&response, 0, sizeof(struct dbg_cmd_response));
+
+	// Parse request
+    if(request->id == DBG_CMD_TEST) {
+    	response.length = 0;
+        wmi_cmd_rsp(sc->tgt_wmi_handle, Command, SeqNo, &response, sizeof(response));
+    } else if(request->id == DBG_CMD_READ_MEMORY) {
+        response.length = dbg_mem_read(response.buffer, 33);
+        wmi_cmd_rsp(sc->tgt_wmi_handle, Command, SeqNo, &response, sizeof(response));
+    } else if(request->id == DBG_CMD_SET_REG) {
+        a_int32_t target_register = (a_int32_t)request->args[0];
+        a_int32_t target_value = (a_int32_t)request->args[1];
+        iowrite32_mac(target_register, ioread32_mac(target_register) ^ target_value); // Flip register value
+
+        // Return
+        //printk(sc, "Reg %08x val %08x is %d.", target_register, target_value, (ioread32_mac(target_register) & target_value) ? 1 : 0);
+        response.length = 0; // indicates last message
+
+        wmi_cmd_rsp(sc->tgt_wmi_handle, Command, SeqNo, &response, sizeof(response));
+    } else if(request->id == DBG_CMD_SET_RATE) {
+        a_int32_t target_value = (a_int32_t)request->args[0];
+
+        // Set rate
+        ath9k_fixed_rate = target_value;
+
+        // Return
+        //printk(sc, "Data rate set to %08x.", ath9k_fixed_rate);
+        response.length = 0; 
+
+        wmi_cmd_rsp(sc->tgt_wmi_handle, Command, SeqNo, &response, sizeof(response));
+    } else if(request->id == DBG_CMD_RESET) {
+    	// Reset your variables here
+    	// ---
+        response.length = 0; 
+
+        wmi_cmd_rsp(sc->tgt_wmi_handle, Command, SeqNo, &response, sizeof(response));
+    } else {
+        a_uint8_t cmd_id_char = request->id + 48;
+
+        A_MEMCPY(response.buffer, "Sent command: ", 14);
+        A_MEMCPY(response.buffer + 14, &cmd_id_char, 1);
+        response.length = 0;
+
+	    wmi_cmd_rsp(sc->tgt_wmi_handle, Command, SeqNo, &response, sizeof(response));
+    }
+}
+
 static WMI_DISPATCH_ENTRY Magpie_Sys_DispatchEntries[] =
 {
 	{handle_echo_command,         WMI_ECHO_CMDID,               0},
@@ -1783,6 +1839,8 @@ static WMI_DISPATCH_ENTRY Magpie_Sys_DispatchEntries[] =
 	{ath_rx_stats_tgt,            WMI_RX_STATS_CMDID,           0},
 	{ath_rc_mask_tgt,             WMI_BITRATE_MASK_CMDID,       0},
 	{ath_hal_reg_rmw_tgt,         WMI_REG_RMW_CMDID,            0},
+	// New stuff
+	{dbg_cmd,                     WMI_DBGCMD_CMDID,             0},
 };
 
 /*****************/
